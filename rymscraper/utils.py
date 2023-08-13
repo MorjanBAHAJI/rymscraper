@@ -5,7 +5,7 @@ import difflib
 from tqdm import tqdm
 from bs4 import BeautifulSoup, NavigableString, element
 from selenium.webdriver.common.by import By
-from typing import List
+from typing import List, Dict
 from rapidfuzz import fuzz, process
 
 logger = logging.getLogger(__name__)
@@ -34,6 +34,35 @@ def get_urls_from_artist_name(browser, artist: str) -> List[str]:
     urls_artist = [f"{base_url}{link['href']}" for link in soup.find_all('a', {'class': 'searchpage'})]
     logger.debug("URLs for %s found : %s", artist, urls_artist)
     return urls_artist
+
+def get_list_new_album(soup) -> List[Dict]:
+    "Return a list of dict of new album trending"
+    new_music = []
+    div_element = soup.find("div", id="newreleases_items_container_new_releases_all")
+    elements = div_element.find_all(
+        lambda tag: tag.has_attr('class')
+                    and any(cls.startswith('newreleases_itembox') for cls in tag['class'])
+                    and tag.find(class_='newreleases_item_artbox')
+    )
+    for i, album in enumerate(elements):
+        new_album = {}
+        artist_name = album.find_all("a", class_="artist")
+        if len(artist_name)==1:
+            new_album["artist_name"] = artist_name[0].string
+            new_album["multiple_artists"] = False
+        elif len(artist_name)>1:
+            new_album["artist_name"] = " X ".join([artist.string for artist in artist_name])
+            new_album["multiple_artists"] = True
+        else:
+            raise ValueError("Cannot find artist name")
+        new_album["name_album"] = album.find("a", class_="album newreleases_item_title").string
+        new_album["average"] = album.find("span", class_="newreleases_stat newreleases_avg_rating_stat").string
+        new_album["num_ratings"] =  album.find("span", class_="newreleases_stat newreleases_ratings_stat").string.replace(",","")
+        new_music.append(new_album)
+    return new_music
+
+
+
 
 def get_url_from_album_name(browser, name: str) -> str:
     """Returns the url of an album."""

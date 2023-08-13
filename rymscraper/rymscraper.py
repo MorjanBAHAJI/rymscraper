@@ -12,6 +12,13 @@ class RymNetwork:
     def __init__(self, headless: bool = True):
         self.browser = RymBrowser.RymBrowser(headless=headless)
 
+
+    def get_new_music(self,):
+        url = "https://rateyourmusic.com/new-music/"
+        logger.info("Extracting album informations for %s.", url)
+        self.browser.get_url(url)
+        return utils.get_list_new_album(self.browser.get_soup())
+
     def get_album_infos(self, url: str = None, name: str = None) -> Dict:
         """Returns a dict containing infos for an album.
 

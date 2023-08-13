@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
-
+import random
 logger = logging.getLogger(__name__)
 
 
@@ -26,14 +26,30 @@ class RymBrowser(webdriver.Firefox):
         while True:
             self.get(str(url))
             class_to_click_on = [
-                "as-oil__btn-optin",  # cookie bar
-                "fc-cta-consent",  # consent popup
-                # "ad-close-button",  # advertisement banner
+                {"class": "as-oil__btn-optin", "id": None, "num_clicks": 1},  # cookie bar
+                {"class":"fc-cta-consent", "id": None, "num_clicks":1},  # consent popup
+                {"class": "view_more", "id": "view_more_new_releases_all", "num_clicks": 4}
             ]
-            for i in class_to_click_on:
-                if len(self.find_elements(By.CLASS_NAME, i)) > 0:
-                    self.find_element(By.CLASS_NAME, i).click()
-                    logger.debug(f"{i} found. Clicking on it.")
+            for class_button in class_to_click_on:
+                for num_clicks in range(class_button["num_clicks"]):
+                    sleep_t = round(random.uniform(0.2, 1.0),2)
+                    logger.debug(f"Sleep for {sleep_t} seconds")
+                    time.sleep(sleep_t)
+                    elements = self.find_elements(By.CLASS_NAME, class_button["class"])
+                    if len(elements)==1:
+                        logger.debug(f"{class_button['class']} found. Clicking on it.")
+                        elements[0].click()
+                    elif len(elements)==0:
+                        logger.debug(f"{class_button['class']} cannot be found")
+                    else:
+                        elements=[el for el in elements if el.get_attribute("id")==class_button["id"]]
+                        if len(elements)==0:
+                            logger.debug(f"{class_button['class']} found, but corresponding id: {class_button['id']} cannot be found..")
+                        elif len(elements)==1:
+                            logger.debug(f"{class_button['class']} found with corresponding id: {class_button['id']} . Clicking on it.")
+                            elements[0].click()
+                        else:
+                            logger.debug(f"{class_button['class']} found with corresponding id: {class_button['id']}, but multiple elements...click ignored")
 
             if len(self.find_elements(By.CLASS_NAME, "disco_expand_section_link")) > 0:
                 try:
@@ -60,7 +76,7 @@ class RymBrowser(webdriver.Firefox):
         return
 
     def get_soup(self):
-        return BeautifulSoup(self.page_source, "lxml")
+        return BeautifulSoup(self.page_source, "html.parser")
 
     def is_ip_banned(self):
         logger.debug("soup.title : %s", self.get_soup().title)
